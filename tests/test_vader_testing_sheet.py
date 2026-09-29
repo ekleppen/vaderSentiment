@@ -17,8 +17,8 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 SHEET = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vaderTesting.xlsx")
 LABELS = {"positive": "positive", "negative": "negative", "not_opinion": "neutral"}
 
-MIN_ALIGNMENT_WITH_ALERT = 0.94
-MIN_ALIGNMENT_TEXT_ONLY = 0.88
+MIN_ALIGNMENT_WITH_ALERT = 0.95
+MIN_ALIGNMENT_TEXT_ONLY = 0.90
 
 
 def load_rows():
@@ -96,6 +96,31 @@ def test_complaints_that_stock_vader_misses(analyzer, text, alert):
 
 
 @pytest.mark.parametrize("text", [
+    "8, only because our refrigerator has not been working since we arrived. Everything else has been great.",
+    "(1/2) Everything is going well. I give it a 9 . My television has been acting up since I arrived.",
+    "Towels felt like sand paper, besides that I'd give it an 8",
+    "...I do have a question...the A/C doesn't seem to be working in the room...won't come on, room very warm",
+    "I had requested that my room be made up today - that didn't happen",
+    "It's been great. Thank you. Our shower doesn't drain very well though. Fyi",
+    "Place is fantastic. Only one issue, the dryer doesn't have heat.",
+    "Checked out already. Wi-Fi was spotty last night.",
+    "(1/2) I'm afraid not good. I had some of the chicken pizza from downstairs and I've been throwing it up all night.",
+])
+def test_softened_complaints_lean_negative(analyzer, text):
+    assert analyzer.polarity_scores(text)["label"] == "negative"
+
+
+@pytest.mark.parametrize("text", [
+    "So far so good....last day, seeing the sights",
+    "No I'm good thank you very much",
+    "(1/2) 10! You were so accommodating to us evacuees i cant even thank you all enough for your hospitality",
+    "It's been a 10. Thank you! We set a check out for 1:30. No need for a bellman.",
+])
+def test_polite_messages_do_not_read_as_complaints(analyzer, text):
+    assert analyzer.polarity_scores(text)["label"] != "negative"
+
+
+@pytest.mark.parametrize("text", [
     "Hello! Thanks so much for checking in. We are having a wonderful time. Things couldn't be better to celebrate. "
     "Can you please pass on to your general manager how happy we are and kudos to Alex and the entire staff.",
     "(1/2) 5 Wen Wen and her partner were excellent, friendly and very courteous. Love them and loved our room.",
@@ -113,11 +138,16 @@ def test_alert_worthy_praise_stays_positive(analyzer, text):
     ("8 out of 10 Two outlets don't work", 8),
     ("So far, I will say an 8. Im withholding a 10", 8),
     ("-10, it was very nice", 10),
-    ("0ur stay was a 10! Thank you", None),
+    ("0ur stay was a 10! Thank you", 10),
     ("0 I checked out Monday, I'm not staying there", None),
     ("0.... lol just kidding everything is great...10", None),
     ("*24 on the phone isn't working", None),
     ("We had to wait 45 min for a table", None),
+    ("Well...so far a 3. Reason being, we can not watch ABC", 3),
+    ("Solid 7. Room service is a bit of an inconvenience", 7),
+    ("Six. When I upgraded I was of the opinion that I would be overlooking the river", 6),
+    ("So far so good", None),
+    ("Our room was 77 degrees this morning", None),
 ])
 def test_extract_rating(text, rating):
     assert extract_rating(text) == rating
