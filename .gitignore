@@ -56,3 +56,5 @@ Temporary Items
 # personal notes and help
 *.notes
 *.help
+# Local virtualenv
+.venv/
